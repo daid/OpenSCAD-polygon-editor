@@ -6,6 +6,9 @@ $().ready(function () {
 	local.paths = new Array();
 	local.oldExportStr = "";
 
+	local.currentPath = 0;
+	local.drag = -1;
+
 	local.drawWidth = $("#drawAreaSource").width();
 	local.drawWidth -= local.drawWidth % (local.gridSize * local.subGridSize * 2);
 	local.drawHeight = $(window).height() - $("#drawAreaSource").offset().top * 4;
@@ -15,7 +18,6 @@ $().ready(function () {
 	local.centerY = local.drawHeight / 2;
 
 	local.drawArea = Raphael("drawAreaSource", local.drawWidth+1, local.drawHeight+1);
-	local.drawBackground = local.drawArea.rect(0,0,local.drawWidth+1, local.drawHeight+1).attr('fill', "#ffffff");
 	
 	var str = "";
 	for(x=0;x<local.drawWidth+1;x+=local.gridSize)
@@ -41,10 +43,7 @@ $().ready(function () {
 	local.remTool.path("M22,10L22,14L2,14L2,10Z").attr("fill", "#E08080");
 	$("#remToolSource").click(function() { setSelectedTool(local.remTool); });
 	
-	local.currentTool = local.editTool;
-	local.currentToolSelection = local.currentTool.path("M0,0L0,24L24,24L24,0Z");
-	local.currentPath = 0;
-	local.drag = -1;
+	setSelectedTool(local.editTool);
 
 	$("#pathListbox").prop("selectedIndex", 0);
 	$("#pathListbox").change(function() {
@@ -184,6 +183,7 @@ $(document).mousedown(function(e) {
 	{
 		if (local.paths.length <= local.currentPath)
 		{	//New path
+			$('#pathListbox option:eq('+local.currentPath+')').text('Path:' + (local.currentPath + 1));
 			$('#pathListbox').append($('<option>').text("[New]")); 
 			local.paths[local.currentPath] = {points: new Array(), prefix: "polygon(", postfix: ");\n"};
 		}
@@ -245,7 +245,8 @@ $(document).mouseup(function(e) {
 
 function setSelectedTool(tool)
 {
-	local.currentToolSelection.remove();
+	if (local.currentToolSelection != undefined)
+		local.currentToolSelection.remove();
 	local.currentTool = tool;
 	local.currentToolSelection = local.currentTool.path("M0,0L0,24L24,24L24,0Z");
 }
