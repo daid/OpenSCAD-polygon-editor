@@ -1,0 +1,59 @@
+body, input, select {
+	color:black;
+	font-family:sans-serif;
+	font-size:x-small;
+	font-size-adjust:none;
+	font-style:normal;
+	font-variant:normal;
+	font-weight:normal;
+	line-height:1.5em;
+}
+
+table {
+	color:black;
+	font-size:100%;
+	border-collapse:collapse;
+	background: #F2F2F2 none repeat scroll 0 0;
+	border: 1px solid #AAAAAA;
+	margin: 0px 0px 5px 0px;
+}
+th, td {
+	border: 1px solid #AAAAAA;
+	
+	vertical-align: top;
+	padding: 0.2em 0.4em;
+}
+td {
+	text-align: left;
+	position: relative;
+}
+th {
+	font-size:small;
+	font-weight: bold;
+	text-align: center;
+	background: #E2E2E2 none repeat scroll 0 0;
+}
+div {
+	position: relative;
+}
+
+a {
+	white-space: nowrap;
+	color: black;
+}
+
+input, textarea, select {
+	background-color: #cccccc;
+	border: 1px solid #000000;
+	color: #333333;
+	padding: 0 4px;
+}
+form {
+	margin-bottom: 0;
+}
+
+img {
+	padding: 0px;
+	border: none;
+}
+
