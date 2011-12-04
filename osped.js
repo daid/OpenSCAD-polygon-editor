@@ -11,7 +11,7 @@ $().ready(function () {
 
 	local.drawWidth = $("#drawAreaSource").width();
 	local.drawWidth -= local.drawWidth % (local.gridSize * local.subGridSize * 2);
-	local.drawHeight = $(window).height() - $("#drawAreaSource").offset().top * 4;
+	local.drawHeight = $(window).height() - $("#drawAreaSource").offset().top * 3;
 	local.drawHeight -= local.drawHeight % (local.gridSize * local.subGridSize * 2);
 
 	local.centerX = local.drawWidth / 2;
@@ -121,19 +121,44 @@ $().ready(function () {
 		$("#pathListbox").change();
 	});
 	$("#exportArea").keyup();
+	
+	$(".toolboxtitle").mousedown(function (e) {
+		var toolbox = $("#toolbox");
+		toolbox.prop("dragX", e.pageX);
+		toolbox.prop("dragY", e.pageY);
+		
+	});
+	$(document).mousemove(function (e) {
+		var toolbox = $("#toolbox");
+		if (toolbox.prop("dragX") != undefined)
+		{
+			toolbox.css("left", toolbox.offset().left + (e.pageX - toolbox.prop("dragX")));
+			toolbox.css("top", toolbox.offset().top + (e.pageY - toolbox.prop("dragY")));
+			toolbox.prop("dragX", e.pageX);
+			toolbox.prop("dragY", e.pageY);
+		}
+	});
+	$(".toolboxtitle").mouseup(function (e) {
+		var toolbox = $("#toolbox");
+		toolbox.removeProp("dragX");
+	});
 });
 
 function eventOnDrawArea(e)
 {
+	if (local.drawArea == undefined) return false;
 	var das = $("#drawAreaSource");
+	var toolbox = $("#toolbox");
 	if (e.pageX < das.offset().left) return false;
 	if (e.pageY < das.offset().top) return false;
 	if (e.pageX > das.offset().left + local.drawWidth) return false;
 	if (e.pageY > das.offset().top + local.drawHeight) return false;
+	if (e.pageX >= toolbox.offset().left && e.pageX <= toolbox.offset().left + toolbox.width() && 
+		e.pageY >= toolbox.offset().top && e.pageY <= toolbox.offset().top + toolbox.height()) return false;
 	if (e.preventDefault) e.preventDefault();
 	e.stopPropagation();
-	e.x = Math.round(((e.pageX - das.offset().left) - local.centerX) / local.gridSize - 0.5);
-	e.y = Math.round(((e.pageY - das.offset().top) - local.centerY) / local.gridSize - 0.5);
+	e.x = Math.round(((e.pageX - das.offset().left) - local.centerX) / local.gridSize);
+	e.y = Math.round(((e.pageY - das.offset().top) - local.centerY) / local.gridSize);
 	return true;
 }
 
@@ -248,6 +273,6 @@ function setSelectedTool(tool)
 	if (local.currentToolSelection != undefined)
 		local.currentToolSelection.remove();
 	local.currentTool = tool;
-	local.currentToolSelection = local.currentTool.path("M0,0L0,24L24,24L24,0Z");
+	local.currentToolSelection = local.currentTool.path("M0.5,0.5L0.5,23.5L23.5,23.5L23.5,0.5Z");
 }
 

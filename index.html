@@ -8,17 +8,16 @@
 <script type="text/javascript" src="osped.js"></script>
 </head>
 <body>
-<table width="100%">
-<tr><td width="150px">
 
-<table>
-<tr><th colspan=3>Toolbox
+<table style="position: absolute; z-index:1; left: 10px; top 10px;" id="toolbox">
+<tr><th colspan="4" class="toolboxtitle">Toolbox
 <tr><td id="editToolSource"><td id="addToolSource"><td id="remToolSource">
+<tr><th colspan="4" class="toolboxtitle">Paths
+<tr><td colspan="4"><select size="10" id="pathListbox" style="width: 140px"><option>[New]</select>
+<tr><th colspan="4" class="toolboxtitle">OpenSCAD code
+<tr><td colspan="4"><textarea id="exportArea" style="width:130px; height: 200px;"></textarea>
 </table>
-<select size="10" id="pathListbox" style="width: 140px"><option>[New]</select>
-OpenSCAD code:<br>
-<textarea id="exportArea" style="width:130px; height: 200px;"></textarea>
-<td id="drawAreaSource" valign="top">
-</table>
+
+<div id="drawAreaSource"></div>
 </body>
 </html>
