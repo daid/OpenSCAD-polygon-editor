@@ -2,7 +2,7 @@
 <html>
 <head>
 <title>OpenSCAD polygon builder</title>
-<link rel="stylesheet" type="text/css" href="style.css" />
+<link rel="stylesheet" type="text/css" href="style.css">
 <script type="text/javascript" src="jquery-1.7.1.min.js"></script>
 <script type="text/javascript" src="raphael-min.js"></script>
 <script type="text/javascript" src="osped.js"></script>
@@ -11,13 +11,18 @@
 
 <table style="position: absolute; z-index:1; left: 10px; top 10px;" id="toolbox">
 <tr><th colspan="4" class="toolboxtitle">Toolbox
-<tr><td id="editToolSource"><td id="addToolSource"><td id="remToolSource">
+<tr><td id="editToolSource"><td id="addToolSource"><td id="remToolSource"><td id="imgToolSource">
+<tr><td colspan="4" id="imageToolOptions" style="display: none;">
+	Url: <input type="text" id="traceImageURL" style="width: 100px"><br \>
+	<span id="traceImageFileSpan">File: <input id="traceImageFile" type="file" style="width: 100px" /><br \></span>
+	Scale: <input type="text" id="traceImageScale" style="width: 40px" value="100">%
 <tr><th colspan="4" class="toolboxtitle">Paths
 <tr><td colspan="4"><select size="10" id="pathListbox" style="width: 140px"><option>[New]</select>
 <tr><th colspan="4" class="toolboxtitle">OpenSCAD code
 <tr><td colspan="4"><textarea id="exportArea" style="width:130px; height: 200px;"></textarea>
 </table>
 
+<img id="traceImage" style="position: absolute; left: 0px;">
 <div id="drawAreaSource"></div>
 </body>
 </html>

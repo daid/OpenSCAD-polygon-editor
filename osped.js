@@ -42,6 +42,12 @@ $().ready(function () {
 	local.remTool = Raphael("remToolSource", 24, 24);
 	local.remTool.path("M22,10L22,14L2,14L2,10Z").attr("fill", "#E08080");
 	$("#remToolSource").click(function() { setSelectedTool(local.remTool); });
+	local.imgTool = Raphael("imgToolSource", 24, 24);
+	local.imgTool.path("M3,21L21,21L21,4L3,4Z");
+	local.imgTool.path("M5,6L5,12L11,12L11,6Z").attr("fill", "#F08080");
+	local.imgTool.circle(12,13,4).attr("fill", "#80F080");;
+	local.imgTool.path("M19,19L11,19L15,13Z").attr("fill", "#8080F0");
+	$("#imgToolSource").click(function() { setSelectedTool(local.imgTool); });
 	
 	setSelectedTool(local.editTool);
 
@@ -120,8 +126,48 @@ $().ready(function () {
 		local.currentPath = 0;
 		$("#pathListbox").change();
 	});
-	$("#exportArea").keyup();
 	
+	//Functionality for loading an image behind the grid to trace over.
+	$("#traceImageURL").keyup(function() {
+		$("#traceImage").attr("src", $("#traceImageURL").val());
+	});
+	$("#traceImageScale").keyup(function () {
+		$("#traceImage").css("width", "");
+		$("#traceImage").css("width", $("#traceImage").width() * parseInt($("#traceImageScale").val()) / 100);
+		$("#traceImage").css("left", local.centerX - $("#traceImage").width() / 2 + $("#drawAreaSource").offset().left);
+		$("#traceImage").css("top", local.centerY - $("#traceImage").height() / 2 + $("#drawAreaSource").offset().top);
+	});
+	$("#traceImage").load(function () {
+		$("#traceImage").css("width", "");
+		$("#traceImage").css("width", $("#traceImage").width() * parseInt($("#traceImageScale").val()) / 100);
+		$("#traceImage").css("left", local.centerX - $("#traceImage").width() / 2 + $("#drawAreaSource").offset().left);
+		$("#traceImage").css("top", local.centerY - $("#traceImage").height() / 2 + $("#drawAreaSource").offset().top);
+	});
+	
+	//Test if we have the FileReader class, which can read files from your local disk (by using the file upload input field)
+	if (typeof(FileReader) != "function")
+	{
+		$("#traceImageFileSpan").css("display", "none");
+	}else{
+		local.imageFilter = /^(image\/bmp|image\/cis-cod|image\/gif|image\/ief|image\/jpeg|image\/jpeg|image\/jpeg|image\/pipeg|image\/png|image\/svg\+xml|image\/tiff|image\/x-cmu-raster|image\/x-cmx|image\/x-icon|image\/x-portable-anymap|image\/x-portable-bitmap|image\/x-portable-graymap|image\/x-portable-pixmap|image\/x-rgb|image\/x-xbitmap|image\/x-xpixmap|image\/x-xwindowdump)$/i;
+		local.fileReader = new FileReader();
+		$("#traceImageFile").change(function() {
+			var files = $("#traceImageFile").prop("files");
+			if (files.length === 0) { return; }  
+			if (!local.imageFilter.test(files[0].type))
+			{
+				alert("You must select a valid image file!");
+				return;
+			}
+			local.fileReader.readAsDataURL(files[0]);
+		});
+		local.fileReader.onload = function (e)
+		{
+			$("#traceImage").attr("src", e.target.result);
+		};
+	}
+	
+	// Make the toolbox dragable
 	$(".toolboxtitle").mousedown(function (e) {
 		var toolbox = $("#toolbox");
 		toolbox.prop("dragX", e.pageX);
@@ -142,6 +188,10 @@ $().ready(function () {
 		var toolbox = $("#toolbox");
 		toolbox.removeProp("dragX");
 	});
+
+	//Fire the keyup event so if any text is filled in by the browser (on refresh for example) then we will show that
+	$("#exportArea").keyup();
+	$("#traceImageURL").keyup();
 });
 
 function eventOnDrawArea(e)
@@ -274,5 +324,8 @@ function setSelectedTool(tool)
 		local.currentToolSelection.remove();
 	local.currentTool = tool;
 	local.currentToolSelection = local.currentTool.path("M0.5,0.5L0.5,23.5L23.5,23.5L23.5,0.5Z");
+	if (local.currentTool == local.imgTool)
+		$("#imageToolOptions").css("display", "");
+	else
+		$("#imageToolOptions").css("display", "none");
 }
-
