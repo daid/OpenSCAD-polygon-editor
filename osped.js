@@ -300,6 +300,8 @@ $(document).mousedown(function(e) {
 });
 $(document).mousemove(function(e) {
 	if (!eventOnDrawArea(e)) return;
+
+	$('#cursorCoordinates').text('x = '+e.x + ', y = ' + e.y);
 	
 	if (local.currentTool == local.editTool)
 	{
