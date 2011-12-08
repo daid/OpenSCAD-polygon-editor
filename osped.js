@@ -8,6 +8,7 @@ $().ready(function () {
 
 	local.currentPath = 0;
 	local.drag = -1;
+	local.selectedIdx = -1;
 
 	local.drawWidth = $("#drawAreaSource").width();
 	local.drawWidth -= local.drawWidth % (local.gridSize * local.subGridSize * 2);
@@ -49,7 +50,34 @@ $().ready(function () {
 	local.imgTool.path("M19,19L11,19L15,13Z").attr("fill", "#8080F0");
 	$("#imgToolSource").click(function() { setSelectedTool(local.imgTool); });
 	
+	local.editToolCorner = Raphael("editToolCorner", 24, 24);
+	local.editToolCorner.path("M3,14L18,18L14,3");
+	local.editToolCorner.rect(15,15,6,6);
+	local.editToolSmooth = Raphael("editToolSmooth", 24, 24);
+	local.editToolSmooth.path("M1,12C16,22 22,16 12,1");
+	local.editToolSmooth.rect(13,13,6,6);
+	local.editToolSmooth.path("M21,11L11,21");
+	local.editToolSmooth.rect(8,18,6,6);
+	local.editToolSmooth.rect(18,8,6,6);
+	
 	setSelectedTool(local.editTool);
+	
+	$("#editToolCorner").click(function () {
+		if (local.selectedIdx < 0) return;
+		local.paths[local.currentPath].points[local.selectedIdx].type = 0;
+		local.paths[local.currentPath].points[local.selectedIdx].prevCP = {x: 0, y: 0};
+		local.paths[local.currentPath].points[local.selectedIdx].nextCP = {x: 0, y: 0};
+		updatePath(local.paths[local.currentPath]);
+		showSelectedCP();
+	});
+	$("#editToolSmooth").click(function () {
+		if (local.selectedIdx < 0) return;
+		local.paths[local.currentPath].points[local.selectedIdx].type = 1;
+		local.paths[local.currentPath].points[local.selectedIdx].prevCP = {x:-2, y:-2};
+		local.paths[local.currentPath].points[local.selectedIdx].nextCP = {x: 2, y: 2};
+		updatePath(local.paths[local.currentPath]);
+		showSelectedCP();
+	});
 
 	$("#pathListbox").prop("selectedIndex", 0);
 	$("#pathListbox").change(function() {
@@ -64,6 +92,7 @@ $().ready(function () {
 			local.paths[local.currentPath].path.attr("stroke-width", 2);
 		}
 		local.currentPath = $("#pathListbox").prop("selectedIndex");
+		local.selectedIdx = -1;
 		if (local.paths[local.currentPath] != undefined)
 		{
 			for(var i=0; i<local.paths[local.currentPath].points.length; i++)
@@ -91,6 +120,7 @@ $().ready(function () {
 			local.paths[i].path.remove();
 		}
 		local.paths = new Array();
+		local.selectedIdx = -1;
 		optionStr = "";
 		
 		var startIdx = str.indexOf("[[");
@@ -109,9 +139,21 @@ $().ready(function () {
 					var n = polyString[i].split(",");
 					var x = parseInt(n[0]);
 					var y = parseInt(n[1]);
-					local.paths[p].points.push({x: x, y: y});
+					local.paths[p].points.push({x: x, y: y, type: 0, nextCP: {x: 0, y: 0}, prevCP: {x: 0, y: 0}});
+					if (polyString[i].indexOf("/*") > 0)
+					{
+						var point = local.paths[p].points[local.paths[p].points.length - 1];
+						var extra = polyString[i].substr(polyString[i].indexOf("/*") + 2);
+						extra = extra.substr(0, extra.length - 2);
+						n = extra.split(":");
+						point.type = parseInt(n[0]);
+						n = n[1].split(",");
+						point.prevCP = {x: parseInt(n[0]), y: parseInt(n[1])};
+						point.nextCP = {x: parseInt(n[2]), y: parseInt(n[3])};
+					}
 				}
-				local.paths[p].path = local.drawArea.path(pathStr(local.paths[p].points)).attr("stroke-width", 2);
+				local.paths[p].path = local.drawArea.path("").attr("stroke-width", 2);
+				updatePath(local.paths[p]);
 				p++;
 				optionStr += "<option>Path:" + p;
 			}
@@ -212,19 +254,58 @@ function eventOnDrawArea(e)
 	return true;
 }
 
-function pathStr(points)
+function toX(x) { return x * local.gridSize + local.centerX; }
+function toY(y) { return y * local.gridSize + local.centerY; }
+
+function updatePath(path)
 {
-	var ret = "";
+	var points = path.points;
+	var str = "";
 	if (points.length > 1)
 	{
-		ret += "M" + (points[0].x * local.gridSize + local.centerX) + "," + (points[0].y * local.gridSize + local.centerY);
-		for(var i=1; i<points.length; i++)
+		var p0 = points[points.length-1];
+		str += "M" + toX(p0.x) + "," + toY(p0.y);
+		for(var i=0; i<points.length; i++)
 		{
-			ret += "L" + (points[i].x * local.gridSize + local.centerX) + "," + (points[i].y * local.gridSize + local.centerY);
+			var p1 = points[i];
+			if (p0.type == 1 || p1.type == 1)
+			{
+				var x1 = p0.x + p0.nextCP.x;
+				var y1 = p0.y + p0.nextCP.y;
+				var x2 = p1.x + p1.prevCP.x;
+				var y2 = p1.y + p1.prevCP.y;
+				str += "C" + toX(x1) + "," + toY(y1) + " " + toX(x2) + "," + toY(y2) + " " + toX(p1.x) + "," + toY(p1.y);
+			}else{
+				str += "L" + toX(p1.x) + "," + toY(p1.y);
+			}
+			var p0 = p1;
 		}
-		ret += "Z";
+		str += "Z";
 	}
-	return ret;
+	path.path.attr("path", str);
+}
+
+function showSelectedCP()
+{
+	if (local.nextCPbox != undefined)
+	{
+		local.nextCPbox.remove();
+		local.nextCPbox = undefined;
+		local.prevCPbox.remove();
+		local.prevCPbox = undefined;
+	}
+	if (local.selectedIdx < 0) return;
+	var p = local.paths[local.currentPath].points[local.selectedIdx];
+	if (p.type == 1)
+	{
+		local.nextCPbox = local.drawArea.rect(toX(p.x + p.nextCP.x) - local.gridSize / 2, toY(p.y + p.nextCP.y) - local.gridSize / 2, local.gridSize, local.gridSize).attr("stroke", "#8080FF");
+		local.prevCPbox = local.drawArea.rect(toX(p.x + p.prevCP.x) - local.gridSize / 2, toY(p.y + p.prevCP.y) - local.gridSize / 2, local.gridSize, local.gridSize).attr("stroke", "#8080FF");
+	}
+}
+
+function interpolate(p0, p1, f)
+{
+	return {x: p0.x + (p1.x - p0.x) * f, y: p0.y + (p1.y - p0.y) * f};
 }
 
 function updateExport()
@@ -237,7 +318,28 @@ function updateExport()
 		{
 			for(var j=0; j<local.paths[i].points.length; j++)
 			{
-				str += "[" + local.paths[i].points[j].x + "," + local.paths[i].points[j].y + "]";
+				var p0 = local.paths[i].points[j];
+				var p1 = local.paths[i].points[(j+1)%local.paths[i].points.length];
+				str += "[" + p0.x + "," + p0.y;
+				if (p0.type == 1 || p1.type == 1)
+				{
+					var q0 = {x: p0.x + p0.nextCP.x, y: p0.y + p0.nextCP.y};
+					var q1 = {x: p1.x + p1.prevCP.x, y: p1.y + p1.prevCP.y};
+					str += "/*1:" + p0.prevCP.x + "," + p0.prevCP.y + "," + p0.nextCP.x + "," + p0.nextCP.y + "*/";
+					for(var k=0.1;k<1;k+=0.1)
+					{
+						//The space makes these points not be used when generating the path again from code.
+						str += "] ,[";
+						var r0 = interpolate(p0, q0, k);
+						var r1 = interpolate(q0, q1, k);
+						var r2 = interpolate(q1, p1, k);
+						var b0 = interpolate(r0, r1, k);
+						var b1 = interpolate(r1, r2, k);
+						var s = interpolate(b0, b1, k);
+						str += s.x.toFixed(3) + "," + s.y.toFixed(3)
+					}
+				}
+				str += "]";
 				if (j < local.paths[i].points.length - 1)
 					str += ",";
 			}
@@ -263,11 +365,10 @@ $(document).mousedown(function(e) {
 			local.paths[local.currentPath] = {points: new Array(), prefix: "polygon(", postfix: ");\n"};
 		}
 		var box = local.drawArea.rect(e.x * local.gridSize + local.centerX - local.gridSize / 2, e.y * local.gridSize + local.centerY - local.gridSize / 2, local.gridSize, local.gridSize);
-		local.paths[local.currentPath].points.push({x: e.x, y: e.y, box: box});
-		if (local.paths[local.currentPath].path != undefined)
-			local.paths[local.currentPath].path.attr("path", pathStr(local.paths[local.currentPath].points));
-		else
-			local.paths[local.currentPath].path = local.drawArea.path(pathStr(local.paths[local.currentPath].points)).attr("stroke-width", 3);
+		local.paths[local.currentPath].points.push({x: e.x, y: e.y, type: 0, box: box, prevCP: {x: 0, y: 0}, nextCP: {x: 0, y: 0}});
+		if (local.paths[local.currentPath].path == undefined)
+			local.paths[local.currentPath].path = local.drawArea.path("").attr("stroke-width", 3);
+		updatePath(local.paths[local.currentPath]);
 		updateExport();
 	}
 	
@@ -275,10 +376,36 @@ $(document).mousedown(function(e) {
 	{
 		if (local.paths[local.currentPath] == undefined) return;
 		
+		if (local.selectedIdx > -1 && local.paths[local.currentPath].points[local.selectedIdx].type == 1)
+		{
+			var p = local.paths[local.currentPath].points[local.selectedIdx];
+			if (p.nextCP.x + p.x == e.x && p.nextCP.y + p.y == e.y)
+			{
+				local.dragType = 1;
+				local.drag = local.selectedIdx;
+				return;
+			}
+			if (p.prevCP.x + p.x == e.x && p.prevCP.y + p.y == e.y)
+			{
+				local.dragType = 2;
+				local.drag = local.selectedIdx;
+				return;
+			}
+		}
+		
 		for(var i=0;i<local.paths[local.currentPath].points.length;i++)
 		{
 			if (local.paths[local.currentPath].points[i].x == e.x && local.paths[local.currentPath].points[i].y == e.y)
+			{
+				if (local.selectedIdx > -1)
+					local.paths[local.currentPath].points[local.selectedIdx].box.attr("stroke", "#000000");
+
 				local.drag = i;
+				local.dragType = 0;
+				local.selectedIdx = i;
+				local.paths[local.currentPath].points[local.selectedIdx].box.attr("stroke", "#ff0000");
+				showSelectedCP();
+			}
 		}
 	}
 	
@@ -294,7 +421,7 @@ $(document).mousedown(function(e) {
 				local.paths[local.currentPath].points.splice(i, 1);
 			}
 		}
-		local.paths[local.currentPath].path.attr("path", pathStr(local.paths[local.currentPath].points));
+		updatePath(local.paths[local.currentPath]);
 		updateExport();
 	}
 });
@@ -305,10 +432,25 @@ $(document).mousemove(function(e) {
 	{
 		if (local.drag != -1)
 		{
-			local.paths[local.currentPath].points[local.drag].x = e.x;
-			local.paths[local.currentPath].points[local.drag].y = e.y;
-			local.paths[local.currentPath].points[local.drag].box.attr({x: e.x * local.gridSize + local.centerX - local.gridSize / 2, y: e.y * local.gridSize + local.centerY - local.gridSize / 2});
-			local.paths[local.currentPath].path.attr("path", pathStr(local.paths[local.currentPath].points));
+			var p = local.paths[local.currentPath].points[local.drag];
+			switch(local.dragType)
+			{
+			case 0:
+				p.x = e.x;
+				p.y = e.y;
+				p.box.attr({x: e.x * local.gridSize + local.centerX - local.gridSize / 2, y: e.y * local.gridSize + local.centerY - local.gridSize / 2});
+				break;
+			case 1:
+				p.nextCP.x = e.x - p.x;
+				p.nextCP.y = e.y - p.y;
+				break;
+			case 2:
+				p.prevCP.x = e.x - p.x;
+				p.prevCP.y = e.y - p.y;
+				break;
+			}
+			updatePath(local.paths[local.currentPath]);
+			showSelectedCP();
 			updateExport();
 		}
 	}
@@ -324,8 +466,13 @@ function setSelectedTool(tool)
 		local.currentToolSelection.remove();
 	local.currentTool = tool;
 	local.currentToolSelection = local.currentTool.path("M0.5,0.5L0.5,23.5L23.5,23.5L23.5,0.5Z");
+	local.selectedIdx = -1;
 	if (local.currentTool == local.imgTool)
 		$("#imageToolOptions").css("display", "");
 	else
 		$("#imageToolOptions").css("display", "none");
+	if (local.currentTool == local.editTool)
+		$("#editToolOptions").css("display", "");
+	else
+		$("#editToolOptions").css("display", "none");
 }
