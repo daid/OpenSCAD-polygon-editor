@@ -99,7 +99,7 @@ $().ready(function () {
 			{
 				if (local.paths[local.currentPath].points[i].box != undefined)
 					local.paths[local.currentPath].points[i].box.remove();
-				local.paths[local.currentPath].points[i].box = local.drawArea.rect(local.paths[local.currentPath].points[i].x * local.gridSize + local.centerX - local.gridSize / 2, local.paths[local.currentPath].points[i].y * local.gridSize + local.centerY - local.gridSize / 2, local.gridSize, local.gridSize);
+				local.paths[local.currentPath].points[i].box = local.drawArea.rect(toX(local.paths[local.currentPath].points[i].x) - local.gridSize / 2, toY(local.paths[local.currentPath].points[i].y) - local.gridSize / 2, local.gridSize, local.gridSize);
 			}
 			local.paths[local.currentPath].path.attr("stroke-width", 3);
 		}
@@ -250,12 +250,12 @@ function eventOnDrawArea(e)
 	if (e.preventDefault) e.preventDefault();
 	e.stopPropagation();
 	e.x = Math.round(((e.pageX - das.offset().left) - local.centerX) / local.gridSize);
-	e.y = Math.round(((e.pageY - das.offset().top) - local.centerY) / local.gridSize);
+	e.y = -Math.round(((e.pageY - das.offset().top) - local.centerY) / local.gridSize);
 	return true;
 }
 
 function toX(x) { return x * local.gridSize + local.centerX; }
-function toY(y) { return y * local.gridSize + local.centerY; }
+function toY(y) { return -y * local.gridSize + local.centerY; }
 
 function updatePath(path)
 {
@@ -308,8 +308,14 @@ function interpolate(p0, p1, f)
 	return {x: p0.x + (p1.x - p0.x) * f, y: p0.y + (p1.y - p0.y) * f};
 }
 
+function distance(p0, p1)
+{
+	return Math.sqrt((p0.x-p1.x)*(p0.x-p1.x) + (p0.y-p1.y)*(p0.y-p1.y));
+}
+
 function updateExport()
 {
+	var maxInterpolateSteps = 100;
 	var str = "";
 	for(var i=0; i<local.paths.length; i++)
 	{
@@ -325,18 +331,24 @@ function updateExport()
 				{
 					var q0 = {x: p0.x + p0.nextCP.x, y: p0.y + p0.nextCP.y};
 					var q1 = {x: p1.x + p1.prevCP.x, y: p1.y + p1.prevCP.y};
+					var prevPoint = p0;
 					str += "/*1:" + p0.prevCP.x + "," + p0.prevCP.y + "," + p0.nextCP.x + "," + p0.nextCP.y + "*/";
-					for(var k=0.1;k<1;k+=0.1)
+					for(var n=1;n<maxInterpolateSteps;n+=1)
 					{
+						var k = n / maxInterpolateSteps;
 						//The space makes these points not be used when generating the path again from code.
-						str += "] ,[";
 						var r0 = interpolate(p0, q0, k);
 						var r1 = interpolate(q0, q1, k);
 						var r2 = interpolate(q1, p1, k);
 						var b0 = interpolate(r0, r1, k);
 						var b1 = interpolate(r1, r2, k);
 						var s = interpolate(b0, b1, k);
-						str += s.x.toFixed(3) + "," + s.y.toFixed(3)
+						if (distance(s, prevPoint) >= 1)
+						{
+							prevPoint = s;
+							str += "] ,[";
+							str += (Math.round(s.x * 100) / 100) + "," + (Math.round(s.y * 100) / 100)
+						}
 					}
 				}
 				str += "]";
@@ -364,7 +376,7 @@ $(document).mousedown(function(e) {
 			$('#pathListbox').append($('<option>').text("[New]")); 
 			local.paths[local.currentPath] = {points: new Array(), prefix: "polygon(", postfix: ");\n"};
 		}
-		var box = local.drawArea.rect(e.x * local.gridSize + local.centerX - local.gridSize / 2, e.y * local.gridSize + local.centerY - local.gridSize / 2, local.gridSize, local.gridSize);
+		var box = local.drawArea.rect(toX(e.x) - local.gridSize / 2, toY(e.y) - local.gridSize / 2, local.gridSize, local.gridSize);
 		local.paths[local.currentPath].points.push({x: e.x, y: e.y, type: 0, box: box, prevCP: {x: 0, y: 0}, nextCP: {x: 0, y: 0}});
 		if (local.paths[local.currentPath].path == undefined)
 			local.paths[local.currentPath].path = local.drawArea.path("").attr("stroke-width", 3);
@@ -440,7 +452,7 @@ $(document).mousemove(function(e) {
 			case 0:
 				p.x = e.x;
 				p.y = e.y;
-				p.box.attr({x: e.x * local.gridSize + local.centerX - local.gridSize / 2, y: e.y * local.gridSize + local.centerY - local.gridSize / 2});
+				p.box.attr({x: toX(e.x) - local.gridSize / 2, y: toY(e.y) - local.gridSize / 2});
 				break;
 			case 1:
 				p.nextCP.x = e.x - p.x;
