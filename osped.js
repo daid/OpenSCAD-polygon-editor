@@ -19,6 +19,7 @@ $().ready(function () {
 	local.centerY = local.drawHeight / 2;
 
 	local.drawArea = Raphael("drawAreaSource", local.drawWidth+1, local.drawHeight+1);
+	$("#wrapper").css("float", "left");
 	
 	var str = "";
 	for(x=0;x<local.drawWidth+1;x+=local.gridSize)
